@@ -1,18 +1,9 @@
-package com.example.yourrecycler
+package com.example.yourrecycler.vendor
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.Window
-import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.DividerItemDecoration
-import com.example.yourrecycler.registerLogin.RegistrationPage
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
-import com.squareup.picasso.Picasso
+import com.example.yourrecycler.R
 import com.xwray.groupie.GroupAdapter
 import com.xwray.groupie.Item
 import com.xwray.groupie.ViewHolder
@@ -27,9 +18,14 @@ class Home : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
+
+        add_item_button.setOnClickListener {
+            val intent = Intent(this, SelectUser::class.java)
+            startActivity(intent)
+        }
+
         val adapter = GroupAdapter<ViewHolder>()
         home_recyler_view.adapter = adapter
-
 
         adapter.add(AddRecycleItem());
         adapter.add(AddRecycleItem());

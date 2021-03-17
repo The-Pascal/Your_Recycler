@@ -2,11 +2,8 @@ package com.example.yourrecycler.registerLogin
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
 import android.os.Parcelable
 import android.provider.MediaStore
 import android.util.Log
@@ -14,7 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import br.com.simplepass.loadingbutton.customViews.CircularProgressButton
-import com.example.yourrecycler.Home
+import com.example.yourrecycler.vendor.Home
 import com.example.yourrecycler.R
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -24,11 +21,9 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.activity_main.*
-import java.sql.Timestamp
 import java.util.*
 
 class RegistrationPage : AppCompatActivity() {
@@ -132,7 +127,7 @@ class RegistrationPage : AppCompatActivity() {
                     selectedPhotoUri = act?.photoUrl
                     val username = act?.displayName
                     val email = act?.email
-                    saveUserToFirebaseDatabase(username!!, email!!, selectedPhotoUri.toString())
+                    sendToAddTypeSaveUser(username!!, email!!, selectedPhotoUri.toString())
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "signInWithCredential:failure", task.exception)
@@ -185,59 +180,51 @@ class RegistrationPage : AppCompatActivity() {
 
                 ref.downloadUrl.addOnSuccessListener{
                     Log.e("registerActivity", "image downloaded url : $it")
-                    saveUserToFirebaseDatabase(username, email, it.toString())
+                    sendToAddTypeSaveUser(username, email, it.toString())
                 }
             }
     }
 
-    private fun saveUserToFirebaseDatabase(username: String, email: String, profileImageUrl : String){
-        val uid = FirebaseAuth.getInstance().uid?: ""
-        val ref = FirebaseDatabase.getInstance().getReference("/Users/$uid")
-        val status = "Not set"
-        val active = true
-        val users = Users(
-            uid,
-            username,
-            email,
-            profileImageUrl,
-            status,
-            active,
-            System.currentTimeMillis()
-        )
-        ref.setValue(users)
-            .addOnSuccessListener {
-                Log.e("registerActivity","User is saved with $uid and $profileImageUrl")
+   private fun sendToAddTypeSaveUser(username: String, email: String, profileImageUrl : String)
+   {
+       val uid = FirebaseAuth.getInstance().uid?: ""
+       val type = "User"
+       val active = true
+       val user = Users(
+           uid,
+           username,
+           email,
+           profileImageUrl,
+           type,
+           active,
+           System.currentTimeMillis()
+       )
 
-                val user = FirebaseAuth.getInstance().currentUser
+       val intent = Intent(this, AddTypeSaveUser::class.java)
+       intent.putExtra("USER", user)
+       startActivity(intent)
+   }
 
-                user!!.sendEmailVerification()
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Log.d(TAG,"Email sent")
-                        }
-                    }
-
-                val deepColor = Color.parseColor("#27E1EF")
-                val largeIcon = BitmapFactory.decodeResource(resources, R.drawable.blue_tick)
-                register_button_register.doneLoadingAnimation(deepColor, largeIcon)
-                val handler = Handler()
-                handler.postDelayed({
-                    Toast.makeText(this, "Account created successfully. Email sent to confirm.", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(this, Home::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or ( Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(intent)
-                },1000)
-            }
-    }
 
     private fun verifyUserIsLoggedIn(){
 
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
-            // User is signed in
-            val intent = Intent(this, Home::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or ( Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
+            val ref = FirebaseDatabase.getInstance().getReference("/Users/${user.uid}/type")
+            ref.get()
+                .addOnSuccessListener {
+                    if(it.value=="Vendor")
+                    {
+                        val intent = Intent(this, Home::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or ( Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
+                    else{
+                        val intent = Intent(this, Home::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or ( Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
+                }
         }
     }
 
@@ -249,6 +236,6 @@ class RegistrationPage : AppCompatActivity() {
 
 
 @Parcelize
-class Users(val uid: String , val username: String , val email: String, val imageUrl : String, val status:String, val active: Boolean, val timestamp: Long): Parcelable{
+class Users(val uid: String , val username: String , val email: String, val imageUrl : String, var type:String, val active: Boolean, val timestamp: Long): Parcelable{
     constructor(): this("","","","","",true,-1)
 }
